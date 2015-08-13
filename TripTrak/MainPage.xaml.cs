@@ -703,7 +703,6 @@ namespace TripTrak
                 this.InputMap.Children.Add(imageCurrent);
                 MapControl.SetLocation(imageCurrent, geopoint);
                 MapControl.SetNormalizedAnchorPoint(imageCurrent, new Point(0.5, 0.5));
-                //TEST GIT SVN FEATURES
             }
 
         }
