@@ -20,6 +20,7 @@ using Windows.Foundation;
 using Windows.Storage.Streams;
 using Windows.Graphics.Imaging;
 using Windows.UI.Xaml.Media.Imaging;
+using Windows.Storage.FileProperties;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -127,7 +128,7 @@ namespace TripTrak
         /// Loads the saved location data on first navigation, and 
         /// attaches a Geolocator.StatusChanged event handler. 
         /// </summary>
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
 
@@ -141,6 +142,31 @@ namespace TripTrak
 
                 // Start handling Geolocator and network status changes after loading the data 
                 // so that the view doesn't get refreshed before there is something to show.
+                int stop = 0;
+                IReadOnlyList<StorageFile> files = await KnownFolders.PicturesLibrary.GetFilesAsync();
+                for (int i = 0; i < files.Count; i++)
+                {
+                    // do something with the name of each file
+                    Geopoint geopoint = await GeotagHelper.GetGeotagAsync(files[i]);
+                    if (geopoint != null)
+                    {
+                        IRandomAccessStream stream = await files[i].OpenAsync(FileAccessMode.Read);
+                        BitmapImage bmp = new BitmapImage();
+                        bmp.SetSource(stream);
+                        Image Image1 = new Image();
+                        Image1.Source = bmp;
+                        Image1.Height = 50;
+                        Image1.Width = 80;
+
+                        this.InputMap.Children.Add(Image1);
+                        MapControl.SetLocation(Image1, geopoint);
+                        MapControl.SetNormalizedAnchorPoint(Image1, new Point(0.5, 0.5));
+                        stop++;
+                        if (stop > 20)
+                            break;
+                    }
+                }
+
                 LocationHelper.Geolocator.StatusChanged += Geolocator_StatusChanged;
                 NetworkInformation.NetworkStatusChanged += NetworkInformation_NetworkStatusChanged;
             }
