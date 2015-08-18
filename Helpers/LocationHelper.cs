@@ -24,6 +24,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,8 +33,9 @@ using Windows.Data.Xml.Dom;
 using Windows.Devices.Geolocation;
 using Windows.Services.Maps;
 using Windows.UI.Notifications;
+using Windows.UI.Popups;
 
-namespace Location
+namespace Helpers
 {
     public static class LocationHelper
     {
@@ -55,7 +57,7 @@ namespace Location
         static LocationHelper()
         {
             // TODO Replace the placeholder string below with your own Bing Maps key from https://www.bingmapsportal.com
-            MapService.ServiceToken = "<insert your Bing Maps key here>";
+            MapService.ServiceToken = "0KEyuXXhxVaOAIXwgvLA~doIeC1quhF2yDcbmlTYc6Q~AqLMibILNUu-ftoKwCf3whcS97LHNcNfVxjhwPQUQiMtbTSuQJHkbZeYm-z-05UY";
         }
 
         /// <summary>
@@ -79,7 +81,7 @@ namespace Location
                         Geoposition position = await Geolocator.GetGeopositionAsync().AsTask(token);
                         return new LocationData { Position = position.Coordinate.Point.Position };
 
-                    case GeolocationAccessStatus.Denied: 
+                    case GeolocationAccessStatus.Denied:
                     case GeolocationAccessStatus.Unspecified:
                     default:
                         return null;
@@ -100,7 +102,6 @@ namespace Location
         {
             var center = (await LocationHelper.GetCurrentLocationAsync())?.Position ??
                 new BasicGeoposition { Latitude = 47.640068, Longitude = -122.129858 };
-
             int latitudeRange = 36000;
             int longitudeRange = 53000;
             var random = new Random();
@@ -134,8 +135,8 @@ namespace Location
         /// <param name="location">The location to display the route to.</param>
         public static async Task ShowRouteToLocationInMapsAppAsync(LocationData location, LocationData currentLocation)
         {
-            var mapUri = new Uri("bingmaps:?trfc=1&rtp=" + 
-                $"pos.{Math.Round(currentLocation.Position.Latitude, 6)}_{Math.Round(currentLocation.Position.Longitude, 6)}~" + 
+            var mapUri = new Uri("bingmaps:?trfc=1&rtp=" +
+                $"pos.{Math.Round(currentLocation.Position.Latitude, 6)}_{Math.Round(currentLocation.Position.Longitude, 6)}~" +
                 $"pos.{location.Position.Latitude}_{location.Position.Longitude}");
             await Windows.System.Launcher.LaunchUriAsync(mapUri);
         }
@@ -278,7 +279,7 @@ namespace Location
             if (results.Status == MapLocationFinderStatus.Success && results.Locations.Count > 0)
             {
                 var result = results.Locations.First();
-                location.Position = result.Point.Position;
+             //   location.Position = result.Point.Position;
                 location.Address = result.Address.FormattedAddress;
                 if (String.IsNullOrEmpty(location.Name)) location.Name = result.Address.Town;
 
@@ -295,4 +296,4 @@ namespace Location
     }
 
 }
-    
+

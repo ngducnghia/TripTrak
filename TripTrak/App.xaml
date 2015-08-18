@@ -15,8 +15,16 @@
              depending on a single boolean property value. For an example, see the 
              InputMapItemTemplate in MainPage.xaml. -->
         <common:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <common:BoolToContentConverter x:Key="ActivatedBrushConverter" NullContent="Black">
+            <common:BoolToContentConverter.TrueContent>
+                <SolidColorBrush Color="Yellow"/>
+            </common:BoolToContentConverter.TrueContent>
+            <common:BoolToContentConverter.FalseContent>
+                <SolidColorBrush Color="Transparent"/>
+            </common:BoolToContentConverter.FalseContent>
+        </common:BoolToContentConverter>
 
-        <!-- This ListView style is a copy of the default style with the addition of a Background property value
+            <!-- This ListView style is a copy of the default style with the addition of a Background property value
              for the nested ScrollViewer. This change enables the ListView to pass user gestures to the underlying
              control as long as those gestures are not over an item of the ListView. For example, a ListView might 
              contain only a few items, but still occupy the entire height of a window, leaving blank space below

@@ -1,4 +1,4 @@
-﻿using Location;
+﻿using Helpers;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -21,6 +21,7 @@ using Windows.Storage.Streams;
 using Windows.Graphics.Imaging;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.Storage.FileProperties;
+using Windows.Storage.Search;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -39,6 +40,7 @@ namespace TripTrak
 
         #region Location data
 
+        public ObservableCollection<MapIcon> MappedIcons { get; set; }
         /// <summary>
         /// Gets or sets the saved locations. 
         /// </summary>
@@ -93,13 +95,13 @@ namespace TripTrak
 
             this.Locations = new ObservableCollection<LocationData>();
             this.MappedLocations = new ObservableCollection<LocationData>(this.Locations);
-
             // MappedLocations is a superset of Locations, so any changes in Locations
             // need to be reflected in MappedLocations. 
             this.Locations.CollectionChanged += (s, e) =>
             {
                 if (e.NewItems != null) foreach (LocationData item in e.NewItems) this.MappedLocations.Add(item);
                 if (e.OldItems != null) foreach (LocationData item in e.OldItems) this.MappedLocations.Remove(item);
+                CheckPointSlider.Maximum = Locations.Count;
             };
 
             // Update the travel times every 5 minutes.
@@ -134,43 +136,28 @@ namespace TripTrak
 
             if (e.NavigationMode == NavigationMode.New)
             {
+
                 // Load sample location data.
                 //       foreach (var location in await LocationDataStore.GetSampleLocationDataAsync()) this.Locations.Add(location);
-
                 // Alternative: Load location data from storage.
-                //foreach (var item in await LocationDataStore.GetLocationDataAsync()) this.Locations.Add(item);
+                //   foreach (var item in await LocationDataStore.GetLocationDataAsync()) this.Locations.Add(item);
 
-                // Start handling Geolocator and network status changes after loading the data 
-                // so that the view doesn't get refreshed before there is something to show.
-                int stop = 0;
-                IReadOnlyList<StorageFile> files = await KnownFolders.PicturesLibrary.GetFilesAsync();
-                for (int i = 0; i < files.Count; i++)
+
+                List<LocationData> photoMapIcons = await PhotoHelper.GetPhotoInDevice();
+                for (int i = 0; i < photoMapIcons.Count; i++)
                 {
-                    // do something with the name of each file
-                    Geopoint geopoint = await GeotagHelper.GetGeotagAsync(files[i]);
-                    if (geopoint != null)
-                    {
-                        IRandomAccessStream stream = await files[i].OpenAsync(FileAccessMode.Read);
-                        BitmapImage bmp = new BitmapImage();
-                        bmp.SetSource(stream);
-                        Image Image1 = new Image();
-                        Image1.Source = bmp;
-                        Image1.Height = 50;
-                        Image1.Width = 80;
-
-                        this.InputMap.Children.Add(Image1);
-                        MapControl.SetLocation(Image1, geopoint);
-                        MapControl.SetNormalizedAnchorPoint(Image1, new Point(0.5, 0.5));
-                        stop++;
-                        if (stop > 20)
-                            break;
-                    }
+                    this.Locations.Add(photoMapIcons[i]);
+                    await LocationHelper.TryUpdateMissingLocationInfoAsync(photoMapIcons[i], null);
                 }
 
-                LocationHelper.Geolocator.StatusChanged += Geolocator_StatusChanged;
-                NetworkInformation.NetworkStatusChanged += NetworkInformation_NetworkStatusChanged;
             }
+
+            // Start handling Geolocator and network status changes after loading the data 
+            // so that the view doesn't get refreshed before there is something to show.
+            LocationHelper.Geolocator.StatusChanged += Geolocator_StatusChanged;
+            NetworkInformation.NetworkStatusChanged += NetworkInformation_NetworkStatusChanged;
         }
+
 
         /// <summary>
         /// Cancels any in-flight request to the Geolocator, and
@@ -187,7 +174,6 @@ namespace TripTrak
         #endregion Initialization and navigation code
 
         #region Geolocator and network status and map refresh code
-
         /// <summary>
         /// Handles the Geolocator.StatusChanged event to refresh the map and locations list 
         /// if the Geolocator is available, and to display an error message otherwise.
@@ -264,11 +250,11 @@ namespace TripTrak
             double viewWidth = ApplicationView.GetForCurrentView().VisibleBounds.Width;
             var margin = new Thickness((viewWidth >= 500 ? 300 : 10), 10, 10, 10);
             bool isSuccessful = await this.InputMap.TrySetViewBoundsAsync(bounds, margin, MapAnimationKind.Default);
-            if (isSuccessful && positions.Count < 2) this.InputMap.ZoomLevel = 12;
+            if (isSuccessful && positions.Count < 2) this.InputMap.ZoomLevel = 15;
             else if (!isSuccessful && positions.Count > 0)
             {
                 this.InputMap.Center = new Geopoint(positions[0]);
-                this.InputMap.ZoomLevel = 12;
+                this.InputMap.ZoomLevel = 15;
             }
             if (currentLocation != null) await this.TryUpdateLocationsTravelInfoAsync(this.Locations, currentLocation);
         }
@@ -341,6 +327,36 @@ namespace TripTrak
             this.ToggleLocationsPaneVisibility();
         }
 
+        private void mapItemButton_Click(object sender, RoutedEventArgs e)
+        {
+            var buttonSender = sender as Button;
+            LocationData location = buttonSender.DataContext as LocationData;
+            LocationsView.SelectedItem = location;
+        }
+
+        private async void TakePhotoButton_Click(object sender, RoutedEventArgs e)
+        {
+
+            BitmapImage bitmapSource = await PhotoHelper.GetPhotoFromCameraLaunch();
+            if (bitmapSource == null)
+                return;
+            // Specify a random location
+            var currentLocation = await LocationHelper.GetRandomGeoposition();
+
+            Geopoint geopoint = new Geopoint(currentLocation);
+
+            LocationData location = new LocationData
+            {
+                Position = geopoint.Position,
+                ImageSource = bitmapSource
+            };
+
+            this.Locations.Add(location);
+            this.LocationsView.UpdateLayout();
+            LocationsView.SelectedItem = location;
+            await LocationHelper.TryUpdateMissingLocationInfoAsync(location, null);
+
+        }
         /// <summary>
         /// Changes the visibility of the locations list, and updates
         /// the app bar button to reflect the new state. 
@@ -375,7 +391,7 @@ namespace TripTrak
                 //       await LocationHelper.TryUpdateMissingLocationInfoAsync(currentLocation, currentLocation);
 
                 this.InputMap.Center = currentLocation.Geopoint;
-                this.InputMap.ZoomLevel = 12;
+                this.InputMap.ZoomLevel = 15;
                 //     this.EditNewLocation(currentLocation);
             }
 
@@ -683,54 +699,8 @@ namespace TripTrak
             this.AddNewLocationButton.IsEnabled = true;
         }
 
+
         #endregion Map selection mode for repositioning a location
 
-        private async void TakePhotoButton_Click(object sender, RoutedEventArgs e)
-        {
-            CameraCaptureUI captureUI = new CameraCaptureUI();
-            captureUI.PhotoSettings.Format = CameraCaptureUIPhotoFormat.Jpeg;
-            captureUI.PhotoSettings.CroppedSizeInPixels = new Size(80, 50);
-
-            StorageFile photo = await captureUI.CaptureFileAsync(CameraCaptureUIMode.Photo);
-
-            if (photo == null)
-            {
-                // User cancelled photo capture
-                return;
-            }
-            else
-            {
-                IRandomAccessStream stream = await photo.OpenAsync(FileAccessMode.Read);
-                BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
-                SoftwareBitmap softwareBitmap = await decoder.GetSoftwareBitmapAsync();
-
-                SoftwareBitmap softwareBitmapBGR8 = SoftwareBitmap.Convert(softwareBitmap,
-        BitmapPixelFormat.Bgra8,
-        BitmapAlphaMode.Premultiplied);
-
-                var bitmapSource = new SoftwareBitmapSource();
-                await bitmapSource.SetBitmapAsync(softwareBitmapBGR8);
-
-
-
-
-
-                //Create image element
-                Image imageCurrent = new Image();
-                imageCurrent.Source = bitmapSource;
-
-
-                // Specify a random location
-                var currentLocation = await LocationHelper.GetRandomGeoposition();
-
-                Geopoint geopoint = new Geopoint(currentLocation);
-
-                // Add photo taken to map
-                this.InputMap.Children.Add(imageCurrent);
-                MapControl.SetLocation(imageCurrent, geopoint);
-                MapControl.SetNormalizedAnchorPoint(imageCurrent, new Point(0.5, 0.5));
-            }
-
-        }
     }
 }

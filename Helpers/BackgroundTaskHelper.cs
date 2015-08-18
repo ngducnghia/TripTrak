@@ -25,7 +25,7 @@
 using System.Linq;
 using Windows.ApplicationModel.Background;
 
-namespace Location
+namespace Helpers
 {
     /// <summary>
     /// Provides helper methods for registering and unregistering background tasks. 

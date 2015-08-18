@@ -30,8 +30,9 @@ using Windows.Services.Maps;
 using Windows.UI;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Media.Imaging;
 
-namespace Location
+namespace Helpers
 {
     /// <summary>
     /// Represents a saved location for use in tracking travel time, distance, and routes. 
@@ -67,6 +68,7 @@ namespace Location
             get { return this.position; }
             set
             {
+
                 this.SetProperty(ref this.position, value);
                 this.OnPropertyChanged(nameof(Geopoint));
             }
@@ -107,10 +109,22 @@ namespace Location
             }
         }
 
-        /// <summary>
-        /// Gets a path to an image to use as a map pin, reflecting the IsSelected property value. 
-        /// </summary>
-        public string ImageSource => IsSelected ? "Assets/mappin-yellow.png" : "Assets/mappin.png"; 
+        ///// <summary>
+        ///// Gets a path to an image to use as a map pin, reflecting the IsSelected property value. 
+        ///// </summary>
+        //public string ImageSource => IsSelected ? "Assets/mappin-yellow.png" : "Assets/mappin.png";
+
+
+        private BitmapImage imageSource;
+        public BitmapImage ImageSource
+        {
+            get { return imageSource; }
+            set
+            {
+                imageSource = value;
+                OnPropertyChanged();
+            }
+        }
 
         private Point centerpoint = new Point(0.5, 0.5);
         private Point pinpoint = new Point(0.5, 0.9778);
@@ -180,11 +194,30 @@ namespace Location
         }
 
         /// <summary>
+        /// Gets a display-string representation of the lat and lon.
+        /// </summary>
+        public string FormattedLatLon => 1 > 0 ?
+            $"{this.Position.Latitude}, {this.Position.Longitude}, {this.Position.Altitude}" : this.Name;
+
+        /// <summary>
         /// Gets a display-string representation of the current travel distance.
         /// </summary>
         public string FormattedCurrentTravelDistance =>
             this.CurrentTravelDistance == 0 ? "?? miles" :
             this.CurrentTravelDistance + " miles";
+
+        private DateTimeOffset dateCreated;
+        /// <summary>
+        /// Gets or sets a value that indicates when the travel info was last updated. 
+        /// </summary>
+        public DateTimeOffset DateCreated
+        {
+            get { return this.dateCreated; }
+            set
+            {
+                this.SetProperty(ref this.dateCreated, value);
+            }
+        }
 
         private DateTimeOffset timestamp;
         /// <summary>
@@ -243,7 +276,7 @@ namespace Location
         /// Returns the name of the location, or the geocoordinates if there is no name. 
         /// </summary>
         /// <returns></returns>
-        public override string ToString() => String.IsNullOrEmpty(this.Name) ? 
+        public override string ToString() => String.IsNullOrEmpty(this.Name) ?
             $"{this.Position.Latitude}, {this.Position.Longitude}" : this.Name;
 
         /// <summary>
@@ -263,7 +296,7 @@ namespace Location
         /// <param name="location">The location to receive the copied values.</param>
         public void Copy(LocationData location)
         {
-            this.Name = location.Name;  
+            this.Name = location.Name;
             this.Address = location.Address;
             this.Position = location.Position;
             this.CurrentTravelDistance = location.CurrentTravelDistance;

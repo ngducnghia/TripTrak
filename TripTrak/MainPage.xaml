@@ -6,7 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:maps="using:Windows.UI.Xaml.Controls.Maps"
-    xmlns:loc="using:Location"
+    xmlns:loc="using:Helpers"
     mc:Ignorable="d">
     <Page.Resources>
 
@@ -18,10 +18,10 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListViewItem">
-                        <Grid>
+                        <Grid  Visibility="{Binding IsSelected, RelativeSource={RelativeSource Mode=TemplatedParent}, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Border Margin="2" Padding="10" Background="SteelBlue" Opacity="0.9">
                                 <StackPanel>
-                                    <ContentPresenter x:Name="Presenter"/>
+                                    <ContentPresenter x:Name="Presenter" Margin="0" />
                                     <StackPanel Orientation="Horizontal" Background="Transparent" Margin="-10,0,-9,-9" VerticalAlignment="Center" 
                                         Visibility="{Binding IsSelected, RelativeSource={RelativeSource Mode=TemplatedParent}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <AppBarButton Icon="Edit" ToolTipService.ToolTip="Edit location" Click="EditLocation_Click"/>
@@ -31,11 +31,14 @@
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
-                            <Border BorderThickness="2" BorderBrush="Yellow" Visibility="{Binding IsSelected, RelativeSource={RelativeSource Mode=TemplatedParent}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         </Grid>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <!--<Setter Property="Visibility" 
+                Value="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"/>-->
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0 0 0 0" />
         </Style>
 
         <!-- This DataTemplate provides the UI for the location data that appears in the list. This UI appears 
@@ -56,6 +59,8 @@
                 <StackPanel>
                     <TextBlock Text="{x:Bind Name, Mode=OneWay, TargetNullValue=''}" TextWrapping="Wrap"/>
                     <TextBlock Text="{x:Bind Address, Mode=OneWay, TargetNullValue=''}" FontSize="9" TextWrapping="Wrap"/>
+                    <TextBlock Text="{x:Bind FormattedLatLon, Mode=OneWay, TargetNullValue=''}" FontSize="9" TextWrapping="Wrap"/>
+                    <TextBlock Text="{x:Bind DateCreated, Mode=OneWay, TargetNullValue=''}" FontSize="9" TextWrapping="Wrap"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="15,0,0,4">
@@ -93,26 +98,27 @@
                         </Grid>
                     </Flyout>
                 </FlyoutBase.AttachedFlyout>
-
             </Grid>
         </DataTemplate>
 
         <!-- This DataTemplate provides the UI for the locations as they appear in the MapControl. -->
         <DataTemplate x:Key="InputMapItemTemplate" x:DataType="loc:LocationData">
             <Grid>
-
                 <!-- The geopoint icon is used for the current location. -->
                 <TextBlock Text="&#xE1D2;" FontFamily="Segoe MDL2 Assets" FontSize="40" 
                     Visibility="{x:Bind IsCurrentLocation, Converter={StaticResource BooleanToVisibilityConverter}}"
                     maps:MapControl.Location="{x:Bind Geopoint, Mode=OneWay}" 
                     maps:MapControl.NormalizedAnchorPoint="{x:Bind NormalizedAnchorPoint, Mode=OneWay}"/>
-
-                <!-- The custom map pin image is used for saved locations. -->
-                <Image Source="{x:Bind ImageSource, Mode=OneWay}" Width="38" Height="60"
+                <!-- The geopoint icon is used for the current location. -->
+                <Button  x:Name="mapItemButton"  Background="Transparent" Click="mapItemButton_Click" >
+                    <Border BorderBrush="{Binding IsSelected, Converter={StaticResource ActivatedBrushConverter}}" BorderThickness="3">
+                        <!-- The custom map pin image is used for saved locations. -->
+                        <Image Source="{Binding ImageSource, Mode=OneWay}" MaxWidth="80" MaxHeight="80" Stretch="Uniform"
                     Visibility="{x:Bind IsCurrentLocation, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Reverse}"
                     maps:MapControl.Location="{x:Bind Geopoint, Mode=OneWay}" 
                     maps:MapControl.NormalizedAnchorPoint="{x:Bind NormalizedAnchorPoint, Mode=OneWay}"/>
-
+                    </Border>
+                </Button>
             </Grid>
         </DataTemplate>
 
@@ -123,6 +129,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition/>
+            <RowDefinition/>
         </Grid.RowDefinitions>
 
         <!-- TODO Replace the placeholder string below with your own Bing Maps key from https://www.bingmapsportal.com -->
@@ -131,13 +138,11 @@
                          ZoomInteractionMode="GestureAndControl"
                          TiltInteractionMode="GestureAndControl"   
                          RotateInteractionMode="GestureAndControl"
-                         Grid.RowSpan="2" MapHolding="InputMap_MapHolding"
+                         Grid.RowSpan="3" MapHolding="InputMap_MapHolding"
                          TrafficFlowVisible="True"
                          Style="Road"
             MapServiceToken="0KEyuXXhxVaOAIXwgvLA~doIeC1quhF2yDcbmlTYc6Q~AqLMibILNUu-ftoKwCf3whcS97LHNcNfVxjhwPQUQiMtbTSuQJHkbZeYm-z-05UY">
-            <maps:MapCustomExperience>
-                
-            </maps:MapCustomExperience>
+
             <maps:MapItemsControl ItemsSource="{x:Bind MappedLocations}" ItemTemplate="{StaticResource InputMapItemTemplate}"/>
         </maps:MapControl>
 
@@ -175,10 +180,12 @@
         <ListView x:Name="LocationsView" Grid.Row="1" SelectedItem="{x:Bind SelectedLocation, Mode=TwoWay}"
             SelectionMode="Single" Margin="10,10,0,0" Width="277" HorizontalAlignment="Left"
             ItemsSource="{x:Bind Locations}" ItemTemplate="{StaticResource LocationTemplate}" 
-            ItemContainerStyle="{StaticResource LocationsViewItemStyle}" />
+            ItemContainerStyle="{StaticResource LocationsViewItemStyle}" Height="Auto" MinHeight="0"/>
+        
+        <Slider x:Name="CheckPointSlider" Visibility="{Binding ElementName=LocationsView, Path=Visibility, Mode=TwoWay}" Margin="12,0" MaxWidth="480" VerticalAlignment="Bottom"
+    SmallChange="1" LargeChange="1"  Value="{Binding ElementName=LocationsView, Path=SelectedIndex, Mode=TwoWay}" TickFrequency="1" Grid.Row="2" />
 
     </Grid>
-
     <Page.BottomAppBar>
         <CommandBar>
             <AppBarButton x:Name="HideLocationsButton" Icon="ClosePane" Label="Hide locations list" Click="HideLocationsButton_Click" ToolTipService.ToolTip="Hide locations list"/>

@@ -32,7 +32,7 @@ using System.Threading.Tasks;
 using Windows.Devices.Geolocation;
 using Windows.Storage;
 
-namespace Location
+namespace Helpers
 {
     /// <summary>
     /// Provides access to stored location data. 
@@ -48,13 +48,13 @@ namespace Location
         /// <returns>The sample locations.</returns>
         public static async Task<List<LocationData>> GetSampleLocationDataAsync()
         {
-            var center = (await LocationHelper.GetCurrentLocationAsync())?.Position ?? 
+            var center = (await LocationHelper.GetCurrentLocationAsync())?.Position ??
                 new BasicGeoposition { Latitude = 47.640068, Longitude = -122.129858 };
 
             int latitudeRange = 36000;
             int longitudeRange = 53000;
             var random = new Random();
-            Func<int, double, double> getCoordinate = (range, midpoint) => 
+            Func<int, double, double> getCoordinate = (range, midpoint) =>
                 (random.Next(range) - (range / 2)) * 0.00001 + midpoint;
 
             var locations =

@@ -22,7 +22,7 @@
 //  THE SOFTWARE.
 //  ---------------------------------------------------------------------------------
 
-using Location;
+using Helpers;
 using Windows.ApplicationModel.Background;
 
 namespace TrafficMonitor

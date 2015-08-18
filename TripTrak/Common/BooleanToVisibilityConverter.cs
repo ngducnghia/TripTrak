@@ -51,4 +51,31 @@ namespace TripTrak.Common
                 (parameter as string ?? string.Empty).Equals("Reverse");
         }
     }
+
+    public class BooleanToOpacityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, string language)
+        {
+            return ((bool)value) ? 1 : 0;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, string language)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class BooleanToHaflOpacityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, string language)
+        {
+            return ((bool)value) ? 1 : 0.5;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, string language)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
 }

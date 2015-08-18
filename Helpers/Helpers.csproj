@@ -119,6 +119,7 @@
     <Compile Include="LocationData.cs" />
     <Compile Include="LocationDataStore.cs" />
     <Compile Include="LocationHelper.cs" />
+    <Compile Include="PhotoHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
