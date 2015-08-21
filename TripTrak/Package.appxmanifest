@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" IgnorableNamespaces="uap mp">
-  <Identity Name="7fcf54dc-e2b1-42c6-83dc-78fb4f0688b3" Publisher="CN=Nghia" Version="1.0.0.0" />
+  <Identity Name="4859NghiaNguyen.TripTrakPrototype" Publisher="CN=9C1FA1C3-DE10-45E4-B611-332EFF4963A4" Version="1.1.1.0" />
   <mp:PhoneIdentity PhoneProductId="7fcf54dc-e2b1-42c6-83dc-78fb4f0688b3" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
-    <DisplayName>TripTrak</DisplayName>
-    <PublisherDisplayName>Nghia</PublisherDisplayName>
+    <DisplayName>TripTrak Prototype</DisplayName>
+    <PublisherDisplayName>Nghia Nguyen</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
   <Dependencies>
@@ -15,10 +15,14 @@
   </Resources>
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="TripTrak.App">
-      <uap:VisualElements DisplayName="TripTrak" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" Description="TripTrak" BackgroundColor="transparent">
+      <uap:VisualElements DisplayName="TripTrak Prototype" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" Description="TripTrak" BackgroundColor="transparent">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png">
         </uap:DefaultTile>
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
+        <uap:InitialRotationPreference>
+          <uap:Rotation Preference="portrait" />
+          <uap:Rotation Preference="landscape" />
+        </uap:InitialRotationPreference>
       </uap:VisualElements>
       <Extensions>
         <Extension Category="windows.backgroundTasks" EntryPoint="TrafficMonitor.TrafficMonitor">

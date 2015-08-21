@@ -42,7 +42,6 @@ namespace Helpers
                 {
                     //should use Thumbnail to reduce the size of images, otherwise low-end device will crashes
                     var fileStream = await photos[i].GetThumbnailAsync(ThumbnailMode.PicturesView);
-                    
                     var img = new BitmapImage();
                     img.SetSource(fileStream);
 

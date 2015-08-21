@@ -22,6 +22,7 @@ using Windows.Graphics.Imaging;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.Storage.FileProperties;
 using Windows.Storage.Search;
+using Windows.UI.Popups;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -37,10 +38,9 @@ namespace TripTrak
         private bool isNewLocationInEdit;
         private bool isMapSelectionEnabled;
         private bool isExistingLocationBeingRepositioned;
-
+        private List<LocationData> filteredLocations { get; set; }
         #region Location data
 
-        public ObservableCollection<MapIcon> MappedIcons { get; set; }
         /// <summary>
         /// Gets or sets the saved locations. 
         /// </summary>
@@ -95,7 +95,8 @@ namespace TripTrak
             if (Locations != null && Locations.Count > 0)
                 return;
             else
-            { 
+            {
+                this.filteredLocations = new List<LocationData>();
                 this.Locations = new ObservableCollection<LocationData>();
                 this.MappedLocations = new ObservableCollection<LocationData>(this.Locations);
                 // MappedLocations is a superset of Locations, so any changes in Locations
@@ -134,7 +135,7 @@ namespace TripTrak
         /// Loads the saved location data on first navigation, and 
         /// attaches a Geolocator.StatusChanged event handler. 
         /// </summary>
-        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
 
@@ -147,12 +148,7 @@ namespace TripTrak
                 //   foreach (var item in await LocationDataStore.GetLocationDataAsync()) this.Locations.Add(item);
 
 
-                List<LocationData> photoMapIcons = await PhotoHelper.GetPhotoInDevice();
-                for (int i = 0; i < photoMapIcons.Count; i++)
-                {
-                    this.Locations.Add(photoMapIcons[i]);
-                    await LocationHelper.TryUpdateMissingLocationInfoAsync(photoMapIcons[i], null);
-                }
+
 
             }
 
@@ -240,11 +236,15 @@ namespace TripTrak
             if (isGeolocatorReady) currentLocation = await this.GetCurrentLocationAsync();
             if (currentLocation != null)
             {
-                if (this.MappedLocations.Count > 0 && this.MappedLocations[0].IsCurrentLocation)
+
+                if (this.MappedLocations.Count > 0)
                 {
-                    this.MappedLocations.RemoveAt(0);
+                    var currentLoc = this.MappedLocations.FirstOrDefault(loc => loc.IsCurrentLocation == true);
+                    if (currentLoc != null && currentLoc.IsCurrentLocation)
+                        this.MappedLocations.Remove(currentLoc);
                 }
-                this.MappedLocations.Insert(0, new LocationData { Position = currentLocation.Position, IsCurrentLocation = true });
+                this.MappedLocations.Add(new LocationData { Position = currentLocation.Position, IsCurrentLocation = true });
+                await LocationHelper.TryUpdateMissingLocationInfoAsync(this.MappedLocations[this.MappedLocations.Count - 1], null);
             }
 
             // Set the current view of the map control. 
@@ -345,13 +345,14 @@ namespace TripTrak
             if (bitmapSource == null)
                 return;
             // Specify a random location
-            var currentLocation = await LocationHelper.GetRandomGeoposition();
+            //    var currentLocation = await LocationHelper.GetRandomGeoposition();
+            //Geopoint geopoint = new Geopoint(currentLocation);
 
-            Geopoint geopoint = new Geopoint(currentLocation);
+            var currentLocation = await LocationHelper.GetCurrentLocationAsync();
 
             LocationData location = new LocationData
             {
-                Position = geopoint.Position,
+                Position = currentLocation.Geopoint.Position,
                 ImageSource = bitmapSource
             };
 
@@ -359,7 +360,6 @@ namespace TripTrak
             this.LocationsView.UpdateLayout();
             LocationsView.SelectedItem = location;
             await LocationHelper.TryUpdateMissingLocationInfoAsync(location, null);
-
         }
         /// <summary>
         /// Changes the visibility of the locations list, and updates
@@ -392,11 +392,13 @@ namespace TripTrak
             if (currentLocation != null)
             {
                 // Resolve the address given the geocoordinates.
-                //       await LocationHelper.TryUpdateMissingLocationInfoAsync(currentLocation, currentLocation);
+                await LocationHelper.TryUpdateMissingLocationInfoAsync(currentLocation, currentLocation);
 
                 this.InputMap.Center = currentLocation.Geopoint;
                 this.InputMap.ZoomLevel = 15;
-                //     this.EditNewLocation(currentLocation);
+
+
+                LocationsView.SelectedIndex = LocationsView.Items.Count - 1;
             }
 
             (sender as Button).IsEnabled = true;
@@ -446,10 +448,10 @@ namespace TripTrak
         /// </summary>
         private async void DeleteLocation_Click(object sender, RoutedEventArgs e)
         {
-            var location = this.GetLocation(sender as Button);
-            int index = this.Locations.IndexOf(location);
-            this.Locations.Remove(location);
-            await LocationDataStore.SaveLocationDataAsync(this.Locations);
+            //var location = this.GetLocation(sender as Button);
+            //int index = this.Locations.IndexOf(location);
+            //this.Locations.Remove(location);
+            //await LocationDataStore.SaveLocationDataAsync(this.Locations);
         }
 
         /// <summary>
@@ -473,11 +475,11 @@ namespace TripTrak
         /// </summary>
         private async void TrackButton_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as ToggleButton;
-            var location = this.GetLocation(button);
-            location.IsMonitored = button.IsChecked.Value;
-            this.UpdateTrafficMonitor(button.IsChecked.Value);
-            await LocationDataStore.SaveLocationDataAsync(this.Locations);
+            //var button = sender as ToggleButton;
+            //var location = this.GetLocation(button);
+            //location.IsMonitored = button.IsChecked.Value;
+            //this.UpdateTrafficMonitor(button.IsChecked.Value);
+            //await LocationDataStore.SaveLocationDataAsync(this.Locations);
         }
 
         /// <summary>
@@ -497,8 +499,10 @@ namespace TripTrak
         private void UpdateTrafficMonitor(bool isIncrement)
         {
             var monitoredLocationCount = this.Locations.Count(location => location.IsMonitored);
-            if (isIncrement && monitoredLocationCount == 1) LocationHelper.RegisterTrafficMonitor();
-            else if (monitoredLocationCount == 0) LocationHelper.UnregisterTrafficMonitor();
+            if (isIncrement && monitoredLocationCount == 1)
+                LocationHelper.RegisterTrafficMonitor();
+            else if (monitoredLocationCount == 0)
+                LocationHelper.UnregisterTrafficMonitor();
         }
 
         #endregion Location commands: per-location buttons
@@ -510,7 +514,7 @@ namespace TripTrak
         /// </summary>
         private async void FlyoutSave_Click(object sender, RoutedEventArgs e)
         {
-            await this.SaveAsync((sender as FrameworkElement).DataContext as LocationData);
+            //    await this.SaveAsync((sender as FrameworkElement).DataContext as LocationData);
         }
 
         /// <summary>
@@ -518,10 +522,10 @@ namespace TripTrak
         /// </summary>
         private async void TextBox_KeyUp(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
         {
-            if (e.Key == Windows.System.VirtualKey.Enter)
-            {
-                await this.SaveAsync((sender as FrameworkElement).DataContext as LocationData);
-            }
+            //if (e.Key == Windows.System.VirtualKey.Enter)
+            //{
+            //    await this.SaveAsync((sender as FrameworkElement).DataContext as LocationData);
+            //}
         }
 
         /// <summary>
@@ -706,5 +710,57 @@ namespace TripTrak
 
         #endregion Map selection mode for repositioning a location
 
+        private void HistoryDatePicker_Loaded(object sender, RoutedEventArgs e)
+        {
+            HistoryDatePicker.Date = DateTime.Now;
+        }
+
+        private void PrevDayButton_Click(object sender, RoutedEventArgs e)
+        {
+            HistoryDatePicker.Date = HistoryDatePicker.Date.AddDays(-1);
+        }
+
+        private void NextDayButton_Click(object sender, RoutedEventArgs e)
+        {
+            HistoryDatePicker.Date = HistoryDatePicker.Date.AddDays(1);
+        }
+
+        private async void HistoryDatePicker_DateChanged(object sender, DatePickerValueChangedEventArgs e)
+        {
+            if (HistoryDatePicker.Date > DateTime.Now)
+            {
+                HistoryDatePicker.Date = DateTime.Now;
+                NextDayButton.IsEnabled = false;
+                return;
+            }
+            else if (HistoryDatePicker.Date < (DateTime.Now.AddDays(-15)))
+            {
+                HistoryDatePicker.Date = DateTime.Now.AddDays(-15);
+                PrevDayButton.IsEnabled = false;
+                return;
+            }
+            else
+            {
+                PrevDayButton.IsEnabled = true;
+                NextDayButton.IsEnabled = true;
+            }
+            this.MappedLocations.Clear();
+            this.Locations.Clear();
+            if (filteredLocations.Count == 0)
+            {
+                filteredLocations = await PhotoHelper.GetPhotoInDevice();
+            }
+            for (int i = 0; i < filteredLocations.Count; i++)
+            {
+                if (filteredLocations[i].DateCreated.Date == HistoryDatePicker.Date.Date)
+                {
+                    this.Locations.Add(filteredLocations[i]);
+                    if (String.IsNullOrEmpty(filteredLocations[i].Address))
+                        await LocationHelper.TryUpdateMissingLocationInfoAsync(filteredLocations[i], null);
+                }
+            }
+            await this.ResetViewAsync();
+
+        }
     }
 }

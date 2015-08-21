@@ -105,7 +105,7 @@
         <DataTemplate x:Key="InputMapItemTemplate" x:DataType="loc:LocationData">
             <Grid>
                 <!-- The geopoint icon is used for the current location. -->
-                <TextBlock Text="&#xE1D2;" FontFamily="Segoe MDL2 Assets" FontSize="40" 
+                <TextBlock Text="&#xE1D2;" Foreground="Black" FontFamily="Segoe MDL2 Assets" FontSize="40" 
                     Visibility="{x:Bind IsCurrentLocation, Converter={StaticResource BooleanToVisibilityConverter}}"
                     maps:MapControl.Location="{x:Bind Geopoint, Mode=OneWay}" 
                     maps:MapControl.NormalizedAnchorPoint="{x:Bind NormalizedAnchorPoint, Mode=OneWay}"/>
@@ -177,16 +177,25 @@
                  the map shown below the list. For more info, see App.xaml. -->
         <ListView x:Name="LocationsView" Grid.Row="1" SelectedItem="{x:Bind SelectedLocation, Mode=TwoWay}"
             SelectionMode="Single" Margin="10,10,0,0" Width="277" HorizontalAlignment="Left"
-            ItemsSource="{x:Bind Locations}" ItemTemplate="{StaticResource LocationTemplate}" 
+            ItemsSource="{x:Bind MappedLocations}" ItemTemplate="{StaticResource LocationTemplate}" 
             ItemContainerStyle="{StaticResource LocationsViewItemStyle}" Height="Auto" MinHeight="0"/>
 
         <Slider x:Name="CheckPointSlider" Visibility="{Binding ElementName=LocationsView, Path=Visibility, Mode=TwoWay}" Margin="12,0" MaxWidth="480" VerticalAlignment="Bottom"
     SmallChange="1" LargeChange="1"  Value="{Binding ElementName=LocationsView, Path=SelectedIndex, Mode=TwoWay}" TickFrequency="1" Grid.Row="2" />
+
+        <Grid Grid.Row="0">
+            <StackPanel Orientation="Horizontal" Margin="10,0">
+                <Button x:Name="PrevDayButton" Content="&#xE00E;" FontFamily="Segoe MDL2 Assets" Click="PrevDayButton_Click" Foreground="Black"/>
+                <DatePicker Style="{StaticResource TripTrakDatePicker}"  x:Name="HistoryDatePicker" MonthFormat="{}{month.abbreviated(3)}" Width="200" Loaded="HistoryDatePicker_Loaded" DateChanged="HistoryDatePicker_DateChanged" Foreground="Black"/>
+                <Button x:Name="NextDayButton" Content="&#xE00F;" FontFamily="Segoe MDL2 Assets" Click="NextDayButton_Click" Foreground="Black"/>
+            </StackPanel>
+        </Grid>
     </Grid>
+
     <Page.BottomAppBar>
         <CommandBar>
             <AppBarButton x:Name="HideLocationsButton" Icon="ClosePane" Label="Hide locations list" Click="HideLocationsButton_Click" ToolTipService.ToolTip="Hide locations list"/>
-            <AppBarButton x:Name="AddCurrentLocationButton" Icon="Target" Label="Add current location" Click="AddCurrentLocation_Click" ToolTipService.ToolTip="Add current location to list"/>
+            <AppBarButton x:Name="AddCurrentLocationButton" Icon="Target" Label="Go to location" Click="AddCurrentLocation_Click" ToolTipService.ToolTip="Add current location to list"/>
             <AppBarButton x:Name="AddNewLocationButton" Icon="MapPin" Label="Add new location" Click="AddNewLocation_Click" ToolTipService.ToolTip="Add new, blank location to list"/>
             <AppBarButton x:Name="TakePhotoButton" Icon="Camera" Label="Photo check-in" Click="TakePhotoButton_Click" ToolTipService.ToolTip="Take photo then place it on map"/>
         </CommandBar>

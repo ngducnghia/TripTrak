@@ -175,6 +175,14 @@
             </Setter>
         </Style>
 
+        <!-- Default style for Windows.UI.Xaml.Controls.DatePicker -->
+        <Style TargetType="DatePicker" x:Key="TripTrakDatePicker">
+            <Setter Property="MinWidth" Value="250"/>
+            <Setter Property="MaxWidth" Value="456"/>         
+        </Style>
+
+
+
     </Application.Resources>
     
 </Application>

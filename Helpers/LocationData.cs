@@ -212,7 +212,13 @@ namespace Helpers
         /// </summary>
         public DateTimeOffset DateCreated
         {
-            get { return this.dateCreated; }
+            get
+            {
+                if (IsCurrentLocation)
+                    return DateTimeOffset.Now;
+                else
+                    return this.dateCreated;
+            }
             set
             {
                 this.SetProperty(ref this.dateCreated, value);
