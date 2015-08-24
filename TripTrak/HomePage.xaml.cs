@@ -23,6 +23,9 @@ using Windows.UI.Xaml.Media.Imaging;
 using Windows.Storage.FileProperties;
 using Windows.Storage.Search;
 using Windows.UI.Popups;
+using Windows.ApplicationModel.ExtendedExecution;
+using Windows.Services.Maps;
+using Windows.UI;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -39,7 +42,14 @@ namespace TripTrak
         private bool isMapSelectionEnabled;
         private bool isExistingLocationBeingRepositioned;
         private List<LocationData> filteredLocations { get; set; }
+
+
+
         #region Location data
+        /// <summary>
+        /// Gets or sets the MapPolyline Geo 
+        /// </summary>
+        public ObservableCollection<BasicGeoposition> Coords { get; set; }
 
         /// <summary>
         /// Gets or sets the saved locations. 
@@ -96,6 +106,8 @@ namespace TripTrak
                 return;
             else
             {
+
+                this.Coords = new ObservableCollection<BasicGeoposition>();
                 this.filteredLocations = new List<LocationData>();
                 this.Locations = new ObservableCollection<LocationData>();
                 this.MappedLocations = new ObservableCollection<LocationData>(this.Locations);
@@ -105,7 +117,14 @@ namespace TripTrak
                 {
                     if (e.NewItems != null) foreach (LocationData item in e.NewItems) this.MappedLocations.Add(item);
                     if (e.OldItems != null) foreach (LocationData item in e.OldItems) this.MappedLocations.Remove(item);
-                    CheckPointSlider.Maximum = Locations.Count;
+                    try
+                    {
+                        CheckPointSlider.Maximum = Locations.Count;
+                    }
+                    catch
+                    {
+
+                    }
                 };
 
                 // Update the travel times every 5 minutes.
@@ -116,7 +135,13 @@ namespace TripTrak
 
                 LocationHelper.RegisterTrafficMonitor();
             }
+
+            LocationHelper.Geolocator.PositionChanged += Geolocator_PositionChanged;
+            LocationHelper.Geolocator.DesiredAccuracy = PositionAccuracy.High;
+            LocationHelper.Geolocator.MovementThreshold = 1;
         }
+
+
 
         /// <summary>
         /// Starts a timer to perform the specified action at the specified interval.
@@ -156,6 +181,9 @@ namespace TripTrak
             // so that the view doesn't get refreshed before there is something to show.
             LocationHelper.Geolocator.StatusChanged += Geolocator_StatusChanged;
             NetworkInformation.NetworkStatusChanged += NetworkInformation_NetworkStatusChanged;
+
+            StartLocationExtensionSession();
+
         }
 
 
@@ -174,6 +202,25 @@ namespace TripTrak
         #endregion Initialization and navigation code
 
         #region Geolocator and network status and map refresh code
+
+        private void Geolocator_PositionChanged(Geolocator sender, PositionChangedEventArgs args)
+        {
+
+            //   var coord = args.Position.Coordinate.Point.Position;
+
+            var _ = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                Coords.Add(args.Position.Coordinate.Point.Position);
+                this.Locations.Add(new LocationData
+                {
+                    Position = args.Position.Coordinate.Point.Position,
+                    IsCurrentLocation = true
+                });
+                this.LocationsView.UpdateLayout();
+            });
+
+        }
+
         /// <summary>
         /// Handles the Geolocator.StatusChanged event to refresh the map and locations list 
         /// if the Geolocator is available, and to display an error message otherwise.
@@ -446,7 +493,7 @@ namespace TripTrak
         /// Handles delete button clicks to remove the selected
         /// location from the Locations collection. 
         /// </summary>
-        private async void DeleteLocation_Click(object sender, RoutedEventArgs e)
+        private void DeleteLocation_Click(object sender, RoutedEventArgs e)
         {
             //var location = this.GetLocation(sender as Button);
             //int index = this.Locations.IndexOf(location);
@@ -688,7 +735,7 @@ namespace TripTrak
             this.ChangingLocationMessage.Visibility = Visibility.Visible;
             this.HideLocationsButton.IsEnabled = false;
             this.AddCurrentLocationButton.IsEnabled = false;
-            this.AddNewLocationButton.IsEnabled = false;
+         //   this.AddNewLocationButton.IsEnabled = false;
             Flyout.GetAttachedFlyout(this.GetTemplateRootForLocation(this.locationInEdit)).Hide();
         }
 
@@ -704,7 +751,7 @@ namespace TripTrak
             this.ChangingLocationMessage.Visibility = Visibility.Collapsed;
             this.HideLocationsButton.IsEnabled = true;
             this.AddCurrentLocationButton.IsEnabled = true;
-            this.AddNewLocationButton.IsEnabled = true;
+        //    this.AddNewLocationButton.IsEnabled = true;
         }
 
 
@@ -733,9 +780,9 @@ namespace TripTrak
                 NextDayButton.IsEnabled = false;
                 return;
             }
-            else if (HistoryDatePicker.Date < (DateTime.Now.AddDays(-15)))
+            else if (HistoryDatePicker.Date < (DateTime.Now.AddDays(-7)))
             {
-                HistoryDatePicker.Date = DateTime.Now.AddDays(-15);
+                HistoryDatePicker.Date = DateTime.Now.AddDays(-7);
                 PrevDayButton.IsEnabled = false;
                 return;
             }
@@ -760,6 +807,49 @@ namespace TripTrak
                 }
             }
             await this.ResetViewAsync();
+
+        }
+
+        private ExtendedExecutionSession session;
+
+        private async void StartLocationExtensionSession()
+        {
+            session = new ExtendedExecutionSession();
+            session.Description = "Location Tracker";
+            session.Reason = ExtendedExecutionReason.LocationTracking;
+            session.Revoked += Session_Revoked;
+            var result = await session.RequestExtensionAsync();
+            if (result == ExtendedExecutionResult.Denied)
+            {
+                //TODO: handle denied
+            }
+        }
+
+        private void Session_Revoked(object sender, ExtendedExecutionRevokedEventArgs args)
+        {
+            //TODO: clean up session data
+            StopLocationExtensionSession();
+        }
+
+        private void StopLocationExtensionSession()
+        {
+            if (session != null)
+            {
+                session.Dispose();
+                session = null;
+            }
+
+        }
+
+        private void ShowPolyline_Click(object sender, RoutedEventArgs e)
+        {
+            MapPolyline mapPolyline = new MapPolyline();
+            mapPolyline.Path = new Geopath(Coords);
+
+            mapPolyline.StrokeColor = Colors.Black;
+            mapPolyline.StrokeThickness = 3;
+            mapPolyline.StrokeDashed = true;
+            this.InputMap.MapElements.Add(mapPolyline);
 
         }
     }

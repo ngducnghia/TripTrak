@@ -105,7 +105,7 @@
         <DataTemplate x:Key="InputMapItemTemplate" x:DataType="loc:LocationData">
             <Grid>
                 <!-- The geopoint icon is used for the current location. -->
-                <TextBlock Text="&#xE1D2;" Foreground="Black" FontFamily="Segoe MDL2 Assets" FontSize="40" 
+                <TextBlock Text="&#xE1D2;" Foreground="Black" FontFamily="Segoe MDL2 Assets" FontSize="20" 
                     Visibility="{x:Bind IsCurrentLocation, Converter={StaticResource BooleanToVisibilityConverter}}"
                     maps:MapControl.Location="{x:Bind Geopoint, Mode=OneWay}" 
                     maps:MapControl.NormalizedAnchorPoint="{x:Bind NormalizedAnchorPoint, Mode=OneWay}"/>
@@ -143,6 +143,7 @@
             MapServiceToken="0KEyuXXhxVaOAIXwgvLA~doIeC1quhF2yDcbmlTYc6Q~AqLMibILNUu-ftoKwCf3whcS97LHNcNfVxjhwPQUQiMtbTSuQJHkbZeYm-z-05UY">
 
             <maps:MapItemsControl ItemsSource="{x:Bind MappedLocations}" ItemTemplate="{StaticResource InputMapItemTemplate}"/>
+            
         </maps:MapControl>
 
         <StackPanel>
@@ -196,7 +197,7 @@
         <CommandBar>
             <AppBarButton x:Name="HideLocationsButton" Icon="ClosePane" Label="Hide locations list" Click="HideLocationsButton_Click" ToolTipService.ToolTip="Hide locations list"/>
             <AppBarButton x:Name="AddCurrentLocationButton" Icon="Target" Label="Go to location" Click="AddCurrentLocation_Click" ToolTipService.ToolTip="Add current location to list"/>
-            <AppBarButton x:Name="AddNewLocationButton" Icon="MapPin" Label="Add new location" Click="AddNewLocation_Click" ToolTipService.ToolTip="Add new, blank location to list"/>
+            <AppBarButton x:Name="ShowPolyline" Icon="MapDrive" Label="Add new location" Click="ShowPolyline_Click" ToolTipService.ToolTip="Add new, blank location to list"/>
             <AppBarButton x:Name="TakePhotoButton" Icon="Camera" Label="Photo check-in" Click="TakePhotoButton_Click" ToolTipService.ToolTip="Take photo then place it on map"/>
         </CommandBar>
     </Page.BottomAppBar>
