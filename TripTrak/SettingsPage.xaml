@@ -7,8 +7,31 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Background="LightGray">
-        <Rectangle Height="48" Fill="Lavender" VerticalAlignment="Top" />
-        <TextBlock Text="&#xe115;" FontFamily="Segoe MDL2 Assets" FontSize="300" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <Rectangle Height="48" Fill="Lavender" Grid.Row="0" />
+        <StackPanel Grid.Row="1" Padding="10" Orientation="Horizontal">
+            <TextBlock Text="MovementThreshold" VerticalAlignment="Center" />
+            <TextBox x:Name="MoveThresholdTb" Margin="10,0" Width="120" InputScope="Number" />
+            <TextBlock Text="meters" VerticalAlignment="Center" />
+        </StackPanel>
+        <StackPanel Grid.Row="2" Padding="10" Orientation="Horizontal">
+            <TextBlock Text="DesiredAccuracy" VerticalAlignment="Center" />
+            <TextBox x:Name="AccuracyTb" Margin="10,0" Width="120" InputScope="Number"/>
+            <TextBlock Text="meters" VerticalAlignment="Center" />
+        </StackPanel>
+        <StackPanel Grid.Row="3" Padding="10" Orientation="Horizontal">
+            <TextBlock Text="ReportInterval" VerticalAlignment="Center" />
+            <TextBox x:Name="IntervalTb" Margin="10,0" Width="120" InputScope="Number"/>
+            <TextBlock Text="milliseconds" VerticalAlignment="Center" />
+        </StackPanel>
+        <Button Content="Save" x:Name="SaveBt" Grid.Row="4" VerticalAlignment="Top" HorizontalAlignment="Center" Click="SaveBt_Click"/>
+        <!--<TextBlock Text="&#xe115;" FontFamily="Segoe MDL2 Assets" FontSize="300" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Bottom" />-->
     </Grid>
 </Page>

@@ -106,7 +106,6 @@ namespace TripTrak
                 return;
             else
             {
-
                 this.Coords = new ObservableCollection<BasicGeoposition>();
                 this.filteredLocations = new List<LocationData>();
                 this.Locations = new ObservableCollection<LocationData>();
@@ -136,9 +135,7 @@ namespace TripTrak
                 LocationHelper.RegisterTrafficMonitor();
             }
 
-            LocationHelper.Geolocator.PositionChanged += Geolocator_PositionChanged;
-            LocationHelper.Geolocator.DesiredAccuracy = PositionAccuracy.High;
-            LocationHelper.Geolocator.MovementThreshold = 1;
+     
         }
 
 
@@ -181,7 +178,7 @@ namespace TripTrak
             // so that the view doesn't get refreshed before there is something to show.
             LocationHelper.Geolocator.StatusChanged += Geolocator_StatusChanged;
             NetworkInformation.NetworkStatusChanged += NetworkInformation_NetworkStatusChanged;
-
+            LocationHelper.Geolocator.PositionChanged += Geolocator_PositionChanged;
             StartLocationExtensionSession();
 
         }
@@ -197,6 +194,8 @@ namespace TripTrak
             LocationHelper.CancelGetCurrentLocation();
             LocationHelper.Geolocator.StatusChanged -= Geolocator_StatusChanged;
             NetworkInformation.NetworkStatusChanged -= NetworkInformation_NetworkStatusChanged;
+            LocationHelper.Geolocator.PositionChanged -= Geolocator_PositionChanged;
+            StopLocationExtensionSession();
         }
 
         #endregion Initialization and navigation code
@@ -205,20 +204,16 @@ namespace TripTrak
 
         private void Geolocator_PositionChanged(Geolocator sender, PositionChangedEventArgs args)
         {
-
-            //   var coord = args.Position.Coordinate.Point.Position;
-
             var _ = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
                 Coords.Add(args.Position.Coordinate.Point.Position);
-                this.Locations.Add(new LocationData
-                {
-                    Position = args.Position.Coordinate.Point.Position,
-                    IsCurrentLocation = true
-                });
-                this.LocationsView.UpdateLayout();
+                //this.Locations.Add(new LocationData
+                //{
+                //    Position = args.Position.Coordinate.Point.Position,
+                //    IsCurrentLocation = false
+                //});
+                //this.LocationsView.UpdateLayout();
             });
-
         }
 
         /// <summary>
@@ -443,8 +438,6 @@ namespace TripTrak
 
                 this.InputMap.Center = currentLocation.Geopoint;
                 this.InputMap.ZoomLevel = 15;
-
-
                 LocationsView.SelectedIndex = LocationsView.Items.Count - 1;
             }
 
@@ -735,7 +728,7 @@ namespace TripTrak
             this.ChangingLocationMessage.Visibility = Visibility.Visible;
             this.HideLocationsButton.IsEnabled = false;
             this.AddCurrentLocationButton.IsEnabled = false;
-         //   this.AddNewLocationButton.IsEnabled = false;
+            //   this.AddNewLocationButton.IsEnabled = false;
             Flyout.GetAttachedFlyout(this.GetTemplateRootForLocation(this.locationInEdit)).Hide();
         }
 
@@ -751,7 +744,7 @@ namespace TripTrak
             this.ChangingLocationMessage.Visibility = Visibility.Collapsed;
             this.HideLocationsButton.IsEnabled = true;
             this.AddCurrentLocationButton.IsEnabled = true;
-        //    this.AddNewLocationButton.IsEnabled = true;
+            //    this.AddNewLocationButton.IsEnabled = true;
         }
 
 
@@ -843,14 +836,21 @@ namespace TripTrak
 
         private void ShowPolyline_Click(object sender, RoutedEventArgs e)
         {
-            MapPolyline mapPolyline = new MapPolyline();
-            mapPolyline.Path = new Geopath(Coords);
+            if (Coords.Count > 1)
+            {
+                MapPolyline mapPolyline = new MapPolyline();
+                mapPolyline.Path = new Geopath(Coords);
+                var lastGeo = Coords[Coords.Count - 1];
+                Coords.Clear();
+                Coords.Add(lastGeo);
+                mapPolyline.StrokeColor = Colors.Black;
+                mapPolyline.StrokeThickness = 3;
+                mapPolyline.StrokeDashed = true;
+                this.InputMap.MapElements.Add(mapPolyline);
+                this.InputMap.Center = new Geopoint(lastGeo);
+                this.InputMap.ZoomLevel = 20;
 
-            mapPolyline.StrokeColor = Colors.Black;
-            mapPolyline.StrokeThickness = 3;
-            mapPolyline.StrokeDashed = true;
-            this.InputMap.MapElements.Add(mapPolyline);
-
+            }
         }
     }
 }
