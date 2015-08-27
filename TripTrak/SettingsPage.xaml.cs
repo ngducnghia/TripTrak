@@ -29,10 +29,11 @@ namespace TripTrak
         public int MovementThreshold { get; set; }
         public int DesiredAccuracyInMeters { get; set; }
         public int ReportInterval { get; set; }
-
+        private Windows.Storage.ApplicationDataContainer localSettings;
         public SettingsPage()
         {
             this.InitializeComponent();
+            localSettings= Windows.Storage.ApplicationData.Current.LocalSettings;
         }
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
@@ -43,9 +44,9 @@ namespace TripTrak
 
             }
 
-            MoveThresholdTb.Text = LocationHelper.Geolocator.MovementThreshold.ToString("0");
-            AccuracyTb.Text = LocationHelper.Geolocator.DesiredAccuracyInMeters.ToString();
-            IntervalTb.Text = LocationHelper.Geolocator.ReportInterval.ToString();
+                MoveThresholdTb.Text = LocationHelper.Geolocator.MovementThreshold.ToString("0");
+                AccuracyTb.Text = LocationHelper.Geolocator.DesiredAccuracyInMeters.ToString();
+                IntervalTb.Text = LocationHelper.Geolocator.ReportInterval.ToString();
         }
 
         private void SaveBt_Click(object sender, RoutedEventArgs e)
@@ -53,6 +54,20 @@ namespace TripTrak
             LocationHelper.Geolocator.MovementThreshold = Convert.ToDouble(MoveThresholdTb.Text);
             LocationHelper.Geolocator.DesiredAccuracyInMeters = Convert.ToUInt32(AccuracyTb.Text);
             LocationHelper.Geolocator.ReportInterval = Convert.ToUInt32(IntervalTb.Text);
+
+        
+
+            // Create a setting in a container
+
+            Windows.Storage.ApplicationDataContainer container =
+               localSettings.CreateContainer("GeolocatorSettings", Windows.Storage.ApplicationDataCreateDisposition.Always);
+
+            if (localSettings.Containers.ContainsKey("GeolocatorSettings"))
+            {
+                localSettings.Containers["GeolocatorSettings"].Values["MovementThreshold"] = LocationHelper.Geolocator.MovementThreshold;
+                localSettings.Containers["GeolocatorSettings"].Values["DesiredAccuracyInMeters"] = LocationHelper.Geolocator.DesiredAccuracyInMeters;
+                localSettings.Containers["GeolocatorSettings"].Values["ReportInterval"] = LocationHelper.Geolocator.ReportInterval;
+            }
         }
     }
 }

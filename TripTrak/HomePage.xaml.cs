@@ -42,14 +42,9 @@ namespace TripTrak
         private bool isMapSelectionEnabled;
         private bool isExistingLocationBeingRepositioned;
         private List<LocationData> filteredLocations { get; set; }
-
-
+        private int mapPolylineIndex = -1;
 
         #region Location data
-        /// <summary>
-        /// Gets or sets the MapPolyline Geo 
-        /// </summary>
-        public ObservableCollection<BasicGeoposition> Coords { get; set; }
 
         /// <summary>
         /// Gets or sets the saved locations. 
@@ -92,7 +87,6 @@ namespace TripTrak
 
         #endregion Location data
 
-
         #region Initialization and navigation code
 
         /// <summary>
@@ -106,7 +100,6 @@ namespace TripTrak
                 return;
             else
             {
-                this.Coords = new ObservableCollection<BasicGeoposition>();
                 this.filteredLocations = new List<LocationData>();
                 this.Locations = new ObservableCollection<LocationData>();
                 this.MappedLocations = new ObservableCollection<LocationData>(this.Locations);
@@ -135,7 +128,7 @@ namespace TripTrak
                 LocationHelper.RegisterTrafficMonitor();
             }
 
-     
+
         }
 
 
@@ -157,7 +150,7 @@ namespace TripTrak
         /// Loads the saved location data on first navigation, and 
         /// attaches a Geolocator.StatusChanged event handler. 
         /// </summary>
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
 
@@ -169,8 +162,8 @@ namespace TripTrak
                 // Alternative: Load location data from storage.
                 //   foreach (var item in await LocationDataStore.GetLocationDataAsync()) this.Locations.Add(item);
 
-
-
+                App.userLocData = await LocationDataStore.GetBasicGeopositionAsync();
+                //    App.userLocData = new List<SimpleGeoData>();
 
             }
 
@@ -188,9 +181,10 @@ namespace TripTrak
         /// Cancels any in-flight request to the Geolocator, and
         /// disconnects the Geolocator.StatusChanged event handler. 
         /// </summary>
-        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        protected override async void OnNavigatedFrom(NavigationEventArgs e)
         {
             base.OnNavigatedFrom(e);
+           
             LocationHelper.CancelGetCurrentLocation();
             LocationHelper.Geolocator.StatusChanged -= Geolocator_StatusChanged;
             NetworkInformation.NetworkStatusChanged -= NetworkInformation_NetworkStatusChanged;
@@ -206,13 +200,10 @@ namespace TripTrak
         {
             var _ = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
-                Coords.Add(args.Position.Coordinate.Point.Position);
-                //this.Locations.Add(new LocationData
-                //{
-                //    Position = args.Position.Coordinate.Point.Position,
-                //    IsCurrentLocation = false
-                //});
-                //this.LocationsView.UpdateLayout();
+                    App.userLocData.Add(new SimpleGeoData
+                    {
+                        Position = args.Position.Coordinate.Point.Position
+                    });
             });
         }
 
@@ -278,7 +269,6 @@ namespace TripTrak
             if (isGeolocatorReady) currentLocation = await this.GetCurrentLocationAsync();
             if (currentLocation != null)
             {
-
                 if (this.MappedLocations.Count > 0)
                 {
                     var currentLoc = this.MappedLocations.FirstOrDefault(loc => loc.IsCurrentLocation == true);
@@ -288,22 +278,13 @@ namespace TripTrak
                 this.MappedLocations.Add(new LocationData { Position = currentLocation.Position, IsCurrentLocation = true });
                 await LocationHelper.TryUpdateMissingLocationInfoAsync(this.MappedLocations[this.MappedLocations.Count - 1], null);
             }
-
             // Set the current view of the map control. 
             var positions = this.Locations.Select(loc => loc.Position).ToList();
             if (currentLocation != null) positions.Insert(0, currentLocation.Position);
-            var bounds = GeoboundingBox.TryCompute(positions);
-            double viewWidth = ApplicationView.GetForCurrentView().VisibleBounds.Width;
-            var margin = new Thickness((viewWidth >= 500 ? 300 : 10), 10, 10, 10);
-            bool isSuccessful = await this.InputMap.TrySetViewBoundsAsync(bounds, margin, MapAnimationKind.Default);
-            if (isSuccessful && positions.Count < 2) this.InputMap.ZoomLevel = 15;
-            else if (!isSuccessful && positions.Count > 0)
-            {
-                this.InputMap.Center = new Geopoint(positions[0]);
-                this.InputMap.ZoomLevel = 15;
-            }
+            await setViewOnMap(positions);
             if (currentLocation != null) await this.TryUpdateLocationsTravelInfoAsync(this.Locations, currentLocation);
         }
+
 
         /// <summary>
         /// Updates the travel time and distance info for all locations in the Locations collection,
@@ -397,7 +378,6 @@ namespace TripTrak
                 Position = currentLocation.Geopoint.Position,
                 ImageSource = bitmapSource
             };
-
             this.Locations.Add(location);
             this.LocationsView.UpdateLayout();
             LocationsView.SelectedItem = location;
@@ -513,7 +493,7 @@ namespace TripTrak
         /// by a background task that periodically checks traffic and sends a notification 
         /// whenever traffic adds 10 minutes or more to the travel time.
         /// </summary>
-        private async void TrackButton_Click(object sender, RoutedEventArgs e)
+        private void TrackButton_Click(object sender, RoutedEventArgs e)
         {
             //var button = sender as ToggleButton;
             //var location = this.GetLocation(button);
@@ -552,7 +532,7 @@ namespace TripTrak
         /// <summary>
         /// Handles clicks to the Save button by saving location edits. 
         /// </summary>
-        private async void FlyoutSave_Click(object sender, RoutedEventArgs e)
+        private void FlyoutSave_Click(object sender, RoutedEventArgs e)
         {
             //    await this.SaveAsync((sender as FrameworkElement).DataContext as LocationData);
         }
@@ -560,7 +540,7 @@ namespace TripTrak
         /// <summary>
         /// Handles presses to the Enter key by saving location edits. 
         /// </summary>
-        private async void TextBox_KeyUp(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
+        private void TextBox_KeyUp(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
         {
             //if (e.Key == Windows.System.VirtualKey.Enter)
             //{
@@ -750,6 +730,7 @@ namespace TripTrak
 
         #endregion Map selection mode for repositioning a location
 
+        #region TripTrak features
         private void HistoryDatePicker_Loaded(object sender, RoutedEventArgs e)
         {
             HistoryDatePicker.Date = DateTime.Now;
@@ -765,6 +746,41 @@ namespace TripTrak
             HistoryDatePicker.Date = HistoryDatePicker.Date.AddDays(1);
         }
 
+        private async void ShowPolyline_Click(object sender, RoutedEventArgs e)
+        {
+            var simpleGeos = App.userLocData.Where(p => p.DateCreated.Date.Date == HistoryDatePicker.Date.Date).ToList();
+            if (this.Locations.Count > 0)
+            {
+                foreach (LocationData item in this.Locations)
+                {
+                    simpleGeos.Add(new SimpleGeoData
+                    {
+                        Position = item.Position,
+                        DateCreated = item.DateCreated
+                    });
+                }
+            }
+            var simpleGeoInDateOrder = simpleGeos.OrderBy(x => x.DateCreated).ToList();
+            var Coords = new List<BasicGeoposition>();
+            foreach (SimpleGeoData item in simpleGeoInDateOrder)
+            {
+                Coords.Add(item.Position);
+            }
+            if (Coords.Count > 1)
+            {
+                MapPolyline mapPolyline = new MapPolyline();
+                mapPolyline.Path = new Geopath(Coords);
+                mapPolyline.StrokeColor = Colors.Black;
+                mapPolyline.StrokeThickness = 3;
+                mapPolyline.StrokeDashed = true;
+                if (mapPolylineIndex >= 0)
+                    this.InputMap.MapElements.RemoveAt(mapPolylineIndex);
+                this.InputMap.MapElements.Add(mapPolyline);
+                mapPolylineIndex = this.InputMap.MapElements.Count - 1;
+                await setViewOnMap(Coords);
+            }
+        }
+
         private async void HistoryDatePicker_DateChanged(object sender, DatePickerValueChangedEventArgs e)
         {
             if (HistoryDatePicker.Date > DateTime.Now)
@@ -773,7 +789,7 @@ namespace TripTrak
                 NextDayButton.IsEnabled = false;
                 return;
             }
-            else if (HistoryDatePicker.Date < (DateTime.Now.AddDays(-7)))
+            else if (HistoryDatePicker.Date < (DateTime.Now.AddDays(-8)))
             {
                 HistoryDatePicker.Date = DateTime.Now.AddDays(-7);
                 PrevDayButton.IsEnabled = false;
@@ -803,21 +819,9 @@ namespace TripTrak
 
         }
 
-        private ExtendedExecutionSession session;
+        #endregion
 
-        private async void StartLocationExtensionSession()
-        {
-            session = new ExtendedExecutionSession();
-            session.Description = "Location Tracker";
-            session.Reason = ExtendedExecutionReason.LocationTracking;
-            session.Revoked += Session_Revoked;
-            var result = await session.RequestExtensionAsync();
-            if (result == ExtendedExecutionResult.Denied)
-            {
-                //TODO: handle denied
-            }
-        }
-
+        #region Private method
         private void Session_Revoked(object sender, ExtendedExecutionRevokedEventArgs args)
         {
             //TODO: clean up session data
@@ -834,23 +838,35 @@ namespace TripTrak
 
         }
 
-        private void ShowPolyline_Click(object sender, RoutedEventArgs e)
-        {
-            if (Coords.Count > 1)
-            {
-                MapPolyline mapPolyline = new MapPolyline();
-                mapPolyline.Path = new Geopath(Coords);
-                var lastGeo = Coords[Coords.Count - 1];
-                Coords.Clear();
-                Coords.Add(lastGeo);
-                mapPolyline.StrokeColor = Colors.Black;
-                mapPolyline.StrokeThickness = 3;
-                mapPolyline.StrokeDashed = true;
-                this.InputMap.MapElements.Add(mapPolyline);
-                this.InputMap.Center = new Geopoint(lastGeo);
-                this.InputMap.ZoomLevel = 20;
 
+        private ExtendedExecutionSession session;
+
+        private async void StartLocationExtensionSession()
+        {
+            session = new ExtendedExecutionSession();
+            session.Description = "Location Tracker";
+            session.Reason = ExtendedExecutionReason.LocationTracking;
+            session.Revoked += Session_Revoked;
+            var result = await session.RequestExtensionAsync();
+            if (result == ExtendedExecutionResult.Denied)
+            {
+                //TODO: handle denied
             }
         }
+
+        private async Task setViewOnMap(List<BasicGeoposition> positions)
+        {
+            var bounds = GeoboundingBox.TryCompute(positions);
+            double viewWidth = ApplicationView.GetForCurrentView().VisibleBounds.Width;
+            var margin = new Thickness((viewWidth >= 500 ? 300 : 10), 10, 10, 10);
+            bool isSuccessful = await this.InputMap.TrySetViewBoundsAsync(bounds, margin, MapAnimationKind.Default);
+            if (isSuccessful && positions.Count < 2) this.InputMap.ZoomLevel = 15;
+            else if (!isSuccessful && positions.Count > 0)
+            {
+                this.InputMap.Center = new Geopoint(positions[0]);
+                this.InputMap.ZoomLevel = 15;
+            }
+        }
+        #endregion
     }
 }

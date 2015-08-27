@@ -1,10 +1,12 @@
-﻿using System;
+﻿using Helpers;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
+using Windows.Devices.Geolocation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.UI.Core;
@@ -23,6 +25,7 @@ namespace TripTrak
     /// </summary>
     sealed partial class App : Application
     {
+        public static List<SimpleGeoData> userLocData;
         private Frame _rootFrame;
 
         /// <summary>
@@ -58,6 +61,7 @@ namespace TripTrak
                 {
                     //TODO: Load state from previously suspended application
                 }
+            
 
                 // Place the frame in the current Window
                 Window.Current.Content = new MainPage(_rootFrame);
@@ -102,8 +106,9 @@ namespace TripTrak
                 AppViewBackButtonVisibility.Collapsed;
         }
 
-        private void OnSuspending(object sender, SuspendingEventArgs e)
+        private async void OnSuspending(object sender, SuspendingEventArgs e)
         {
+            await LocationDataStore.SaveLocationDataAsync(App.userLocData);
             var deferral = e.SuspendingOperation.GetDeferral();
             // TODO: Save application state and stop any background activity
             deferral.Complete();

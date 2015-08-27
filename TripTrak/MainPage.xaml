@@ -21,7 +21,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <SplitView x:Name="ShellSplitView" OpenPaneLength="150"
-                   IsPaneOpen="True" Grid.Column="1" DisplayMode="Overlay" Grid.Row="1"
+                   IsPaneOpen="False" Grid.Column="1" DisplayMode="Overlay" Grid.Row="1"
                    PaneBackground="{ThemeResource SplitViewBackgroundBrush}">
             <SplitView.Pane>
                 <StackPanel>
@@ -35,6 +35,7 @@
                     <RadioButton Tag="&#xe783;" Content="About" Style="{StaticResource SplitViewNavButtonStyle}" Checked="OnAboutButtonChecked" />
                 </StackPanel>
             </SplitView.Pane>
+            
         </SplitView>
 
         <StackPanel x:Name="HeaderPanel" Orientation="Horizontal">

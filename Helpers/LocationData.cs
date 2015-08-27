@@ -312,4 +312,34 @@ namespace Helpers
         }
 
     }
+
+    public class SimpleGeoData: BindableBase
+    {
+
+        private BasicGeoposition position;
+        /// <summary>
+        /// Gets the geographic position of the location.
+        /// </summary>
+        public BasicGeoposition Position
+        {
+            get { return this.position; }
+            set { this.SetProperty(ref this.position, value); }
+        }
+
+        private DateTimeOffset dateCreated = DateTimeOffset.Now;
+        /// <summary>
+        /// Gets or sets a value that indicates when the travel info was last updated. 
+        /// </summary>
+        public DateTimeOffset DateCreated
+        {
+            get
+            {
+                    return this.dateCreated;
+            }
+            set
+            {
+                this.SetProperty(ref this.dateCreated, value);
+            }
+        }
+    }
 }

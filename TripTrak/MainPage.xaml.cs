@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Helpers;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,6 +27,22 @@ namespace TripTrak
         {
             this.InitializeComponent();
             this.ShellSplitView.Content = frame;
+
+            Windows.Storage.ApplicationDataContainer localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            // Read data from a setting in a container
+            bool hasGeoSettings = localSettings.Containers.ContainsKey("GeolocatorSettings");
+
+            if (hasGeoSettings)
+            {
+                LocationHelper.Geolocator.MovementThreshold = Convert.ToDouble(localSettings.Containers["GeolocatorSettings"].Values["MovementThreshold"]);
+                LocationHelper.Geolocator.DesiredAccuracyInMeters = Convert.ToUInt32(localSettings.Containers["GeolocatorSettings"].Values["DesiredAccuracyInMeters"]);
+                LocationHelper.Geolocator.ReportInterval = Convert.ToUInt32(localSettings.Containers["GeolocatorSettings"].Values["ReportInterval"]);
+            }
+            else
+            {
+                LocationHelper.Geolocator.DesiredAccuracy = Windows.Devices.Geolocation.PositionAccuracy.High; 
+            }
+
         }
 
         private void OnHomeButtonChecked(object sender, RoutedEventArgs e)

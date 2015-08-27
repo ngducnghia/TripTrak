@@ -40,6 +40,7 @@ namespace Helpers
     public static class LocationDataStore
     {
         private const string dataFileName = "TrafficAppData.txt";
+        private const string basicGeoLocationFileName = "basicGeoLocationFileName.txt";
 
         /// <summary>
         /// Gets a list of four sample locations randomply positioned around the user's current 
@@ -112,6 +113,52 @@ namespace Helpers
             using (MemoryStream stream = new MemoryStream())
             {
                 var serializer = new DataContractJsonSerializer(typeof(List<LocationData>));
+                serializer.WriteObject(stream, locations.ToList());
+                stream.Position = 0;
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    string locationString = reader.ReadToEnd();
+                    await FileIO.WriteTextAsync(sampleFile, locationString);
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Load the saved BasicGeoposition list from roaming storage. 
+        /// </summary>
+        public static async Task<List<SimpleGeoData>> GetBasicGeopositionAsync()
+        {
+            List<SimpleGeoData> data = null;
+            try
+            {
+                StorageFile dataFile = await ApplicationData.Current.RoamingFolder.GetFileAsync(basicGeoLocationFileName);
+                string text = await FileIO.ReadTextAsync(dataFile);
+                byte[] bytes = Encoding.Unicode.GetBytes(text);
+                var serializer = new DataContractJsonSerializer(typeof(List<SimpleGeoData>));
+                using (var stream = new MemoryStream(bytes))
+                {
+                    data = serializer.ReadObject(stream) as List<SimpleGeoData>;
+                }
+            }
+            catch (FileNotFoundException)
+            {
+                // Do nothing.
+            }
+            return data ?? new List<SimpleGeoData>();
+        }
+
+        /// <summary>
+        /// Save the BasicGeoposition list to roaming storage. 
+        /// </summary>
+        /// <param name="locations">The BasicGeoposition list  to save.</param>
+        public static async Task SaveLocationDataAsync(IEnumerable<SimpleGeoData> locations)
+        {
+            StorageFile sampleFile = await ApplicationData.Current.RoamingFolder.CreateFileAsync(
+                basicGeoLocationFileName, CreationCollisionOption.ReplaceExisting);
+            using (MemoryStream stream = new MemoryStream())
+            {
+                var serializer = new DataContractJsonSerializer(typeof(List<SimpleGeoData>));
                 serializer.WriteObject(stream, locations.ToList());
                 stream.Position = 0;
                 using (StreamReader reader = new StreamReader(stream))
