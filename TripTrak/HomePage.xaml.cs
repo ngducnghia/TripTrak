@@ -156,15 +156,7 @@ namespace TripTrak
 
             if (e.NavigationMode == NavigationMode.New)
             {
-
-                // Load sample location data.
-                //       foreach (var location in await LocationDataStore.GetSampleLocationDataAsync()) this.Locations.Add(location);
-                // Alternative: Load location data from storage.
-                //   foreach (var item in await LocationDataStore.GetLocationDataAsync()) this.Locations.Add(item);
-
                 App.userLocData = await LocationDataStore.GetBasicGeopositionAsync();
-                //    App.userLocData = new List<SimpleGeoData>();
-
             }
 
             // Start handling Geolocator and network status changes after loading the data 
@@ -181,10 +173,10 @@ namespace TripTrak
         /// Cancels any in-flight request to the Geolocator, and
         /// disconnects the Geolocator.StatusChanged event handler. 
         /// </summary>
-        protected override async void OnNavigatedFrom(NavigationEventArgs e)
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
             base.OnNavigatedFrom(e);
-           
+
             LocationHelper.CancelGetCurrentLocation();
             LocationHelper.Geolocator.StatusChanged -= Geolocator_StatusChanged;
             NetworkInformation.NetworkStatusChanged -= NetworkInformation_NetworkStatusChanged;
@@ -198,12 +190,18 @@ namespace TripTrak
 
         private void Geolocator_PositionChanged(Geolocator sender, PositionChangedEventArgs args)
         {
-            var _ = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            var _ = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
             {
-                    App.userLocData.Add(new SimpleGeoData
+                if (args.Position.Coordinate.Accuracy <= 55)
+                {
+                    var item = new SimpleGeoData
                     {
                         Position = args.Position.Coordinate.Point.Position
-                    });
+                    };
+                    App.userLocData.Add(item);
+                    await LocationDataStore.InsertLocationDataAsync(item);
+                }
+
             });
         }
 

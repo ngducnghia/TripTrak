@@ -1,9 +1,11 @@
 ﻿using Helpers;
+using SQLitePCL;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Devices.Geolocation;
@@ -27,7 +29,7 @@ namespace TripTrak
     {
         public static List<SimpleGeoData> userLocData;
         private Frame _rootFrame;
-
+        public static SQLiteConnection db;
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -108,7 +110,7 @@ namespace TripTrak
 
         private async void OnSuspending(object sender, SuspendingEventArgs e)
         {
-            await LocationDataStore.SaveLocationDataAsync(App.userLocData);
+       //     await LocationDataStore.SaveLocationDataAsync(App.userLocData);
             var deferral = e.SuspendingOperation.GetDeferral();
             // TODO: Save application state and stop any background activity
             deferral.Complete();

@@ -117,6 +117,7 @@
     <Compile Include="BackgroundTaskHelper.cs" />
     <Compile Include="BindableBase.cs" />
     <Compile Include="LocationData.cs" />
+    <Compile Include="LocationDatabase.cs" />
     <Compile Include="LocationDataStore.cs" />
     <Compile Include="LocationHelper.cs" />
     <Compile Include="PhotoHelper.cs" />
