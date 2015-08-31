@@ -42,7 +42,6 @@ namespace TripTrak
         private bool isMapSelectionEnabled;
         private bool isExistingLocationBeingRepositioned;
         private List<LocationData> filteredLocations { get; set; }
-        private int mapPolylineIndex = -1;
 
         #region Location data
 
@@ -192,7 +191,7 @@ namespace TripTrak
         {
             var _ = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
             {
-                if (args.Position.Coordinate.Accuracy <= 55)
+                if (args.Position.Coordinate.Accuracy < 55)
                 {
                     var item = new SimpleGeoData
                     {
@@ -430,7 +429,7 @@ namespace TripTrak
         /// <param name="e"></param>
         private void AddNewLocation_Click(object sender, RoutedEventArgs e)
         {
-            this.EditNewLocation(new LocationData());
+         //   this.EditNewLocation(new LocationData());
         }
 
         /// <summary>
@@ -439,13 +438,13 @@ namespace TripTrak
         /// </summary>
         private async void InputMap_MapHolding(MapControl sender, MapInputEventArgs args)
         {
-            var location = new LocationData { Position = args.Location.Position };
+            //var location = new LocationData { Position = args.Location.Position };
 
-            // Resolve the address given the geocoordinates. In this case, because the 
-            // location is unambiguous, there is no need to pass in the current location.
-            await LocationHelper.TryUpdateMissingLocationInfoAsync(location, null);
+            //// Resolve the address given the geocoordinates. In this case, because the 
+            //// location is unambiguous, there is no need to pass in the current location.
+            //await LocationHelper.TryUpdateMissingLocationInfoAsync(location, null);
 
-            this.EditNewLocation(location);
+            //this.EditNewLocation(location);
         }
 
         #endregion Primary commands: app-bar buttons, map holding gesture
@@ -457,7 +456,7 @@ namespace TripTrak
         /// </summary>
         private void EditLocation_Click(object sender, RoutedEventArgs e)
         {
-            this.EditLocation(this.GetLocation(sender as Button));
+          //  this.EditLocation(this.GetLocation(sender as Button));
         }
 
         /// <summary>
@@ -746,37 +745,72 @@ namespace TripTrak
 
         private async void ShowPolyline_Click(object sender, RoutedEventArgs e)
         {
+            //remove all current polylines on map
+            this.InputMap.MapElements.Clear();
+
+            //Get points on specificed date
             var simpleGeos = App.userLocData.Where(p => p.DateCreated.Date.Date == HistoryDatePicker.Date.Date).ToList();
-            if (this.Locations.Count > 0)
+
+            await GetSelectedDatePhotoPoints();
+
+            //Order points by DateCreated
+            var simpleGeoInDateOrder = simpleGeos.OrderBy(x => x.DateCreated).ToList();
+
+            var Coords = new List<BasicGeoposition>();
+
+            //Query Points list to draw Polylines
+            for (int i = 0; i < simpleGeoInDateOrder.Count; i++)
             {
-                foreach (LocationData item in this.Locations)
+                if (Coords.Count == 0)
+                    Coords.Add(simpleGeoInDateOrder[i].Position);
+                else if (simpleGeoInDateOrder[i].DateCreated - simpleGeoInDateOrder[i - 1].DateCreated < TimeSpan.FromMinutes(2))
                 {
-                    simpleGeos.Add(new SimpleGeoData
+                    Coords.Add(simpleGeoInDateOrder[i].Position);
+                }
+                else
+                {
+                    this.Locations.Add(new LocationData
                     {
-                        Position = item.Position,
-                        DateCreated = item.DateCreated
+                        Position = simpleGeoInDateOrder[i].Position,
+                        DateCreated = simpleGeoInDateOrder[i].DateCreated,
+                        Name = "Polyline"
                     });
+                    //define polyline
+                    MapPolyline mapPolyline = new MapPolyline();
+                    mapPolyline.StrokeColor = Colors.Black;
+                    mapPolyline.StrokeThickness = 2;
+                    mapPolyline.StrokeDashed = true;
+                    mapPolyline.Path = new Geopath(Coords);
+
+                    //draw polyline on map
+                    this.InputMap.MapElements.Add(mapPolyline);
+
+                    //Clear Coords.
+                    Coords.Clear();
                 }
             }
-            var simpleGeoInDateOrder = simpleGeos.OrderBy(x => x.DateCreated).ToList();
-            var Coords = new List<BasicGeoposition>();
-            foreach (SimpleGeoData item in simpleGeoInDateOrder)
+            var ResortLocations = this.Locations.OrderBy(t => t.DateCreated).ToList();
+            this.Locations.Clear();
+            this.MappedLocations.Clear();
+            foreach (LocationData item in ResortLocations)
             {
-                Coords.Add(item.Position);
+                this.Locations.Add(item);
             }
+
+            //draw last Polyline on map
             if (Coords.Count > 1)
             {
-                MapPolyline mapPolyline = new MapPolyline();
-                mapPolyline.Path = new Geopath(Coords);
-                mapPolyline.StrokeColor = Colors.Black;
-                mapPolyline.StrokeThickness = 3;
-                mapPolyline.StrokeDashed = true;
-                if (mapPolylineIndex >= 0)
-                    this.InputMap.MapElements.RemoveAt(mapPolylineIndex);
-                this.InputMap.MapElements.Add(mapPolyline);
-                mapPolylineIndex = this.InputMap.MapElements.Count - 1;
-                await setViewOnMap(Coords);
+                MapPolyline lastPolyline = new MapPolyline();
+                lastPolyline.StrokeColor = Colors.Black;
+                lastPolyline.StrokeThickness = 2;
+                lastPolyline.StrokeDashed = true;
+                lastPolyline.Path = new Geopath(Coords);
+
+                //draw polyline on map
+                this.InputMap.MapElements.Add(lastPolyline);
             }
+
+            await setViewOnMap(Coords);
         }
 
         private async void HistoryDatePicker_DateChanged(object sender, DatePickerValueChangedEventArgs e)
@@ -798,6 +832,15 @@ namespace TripTrak
                 PrevDayButton.IsEnabled = true;
                 NextDayButton.IsEnabled = true;
             }
+            //remove all current polylines on map
+            this.InputMap.MapElements.Clear();
+            await GetSelectedDatePhotoPoints();
+            await this.ResetViewAsync();
+
+        }
+
+        private async Task GetSelectedDatePhotoPoints()
+        {
             this.MappedLocations.Clear();
             this.Locations.Clear();
             if (filteredLocations.Count == 0)
@@ -813,8 +856,6 @@ namespace TripTrak
                         await LocationHelper.TryUpdateMissingLocationInfoAsync(filteredLocations[i], null);
                 }
             }
-            await this.ResetViewAsync();
-
         }
 
         #endregion
@@ -854,6 +895,8 @@ namespace TripTrak
 
         private async Task setViewOnMap(List<BasicGeoposition> positions)
         {
+            if (positions.Count == 0)
+                return;
             var bounds = GeoboundingBox.TryCompute(positions);
             double viewWidth = ApplicationView.GetForCurrentView().VisibleBounds.Width;
             var margin = new Thickness((viewWidth >= 500 ? 300 : 10), 10, 10, 10);
